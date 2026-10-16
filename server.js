@@ -1,9 +1,12 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const { Telegraf, Markup } = require('telegraf');
 
 
 app.use(express.json());
+
+// 1. METODO PRINCIPALE: Dichiara i file statici della cartella public
 app.use(express.static('public'));
 
 // Reindirizza la home page direttamente alla dashboard grafica
@@ -60,6 +63,10 @@ app.post('/api/mt4/ping', authenticateMT4, (req, res) => {
   });
 });
 
+// 2. FORZA LA HOME: Quando aprono il link principale, invia direttamente index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Endpoint per la lettura dello stato da Scriptable / Web App
 app.get('/api/app/status', (req, res) => {
