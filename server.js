@@ -1,8 +1,11 @@
 const express = require('express');
+const app = express();
 const { Telegraf, Markup } = require('telegraf');
+
 
 const app = express();
 app.use(express.json());
+app.use(express.static('public'));
 
 // CONFIGURAZIONE VARIABILI D'AMBIENTE
 const PORT = process.env.PORT || 3000;
