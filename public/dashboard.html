@@ -93,23 +93,35 @@
 </div>
 
 <script>
-    const apiKey = "paperino"; // Oppure gestisci il token dinamicamente
+    // Prende la chiave direttamente dall'URL (es: ?key=LA_TUA_CHIAVE)
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiKey = urlParams.get('key') || "paperino"; 
 
     async function fetchData() {
         try {
-            // Passa la chiave come parametro nella chiamata fetch
             const response = await fetch(`/api/app/status?key=${apiKey}`);
             if (!response.ok) throw new Error("Non autorizzato");
             
-            const data = await response.json();
+            const rawData = await response.json();
             
-            // Adatta questi campi in base a come è fatto il tuo oggetto JSON `accounts`
-            document.getElementById('balance').innerText = `$${data.balance || '0.00'}`;
-            document.getElementById('equity').innerText = `$${data.equity || '0.00'}`;
-            document.getElementById('trades').innerText = data.openTrades || '0';
+            // Estrae il primo account presente nell'oggetto (es. "17031093")
+            const accountKeys = Object.keys(rawData);
+            if (accountKeys.length === 0) {
+                throw new Error("Nessun conto trovato nei dati");
+            }
+
+            const account = rawData[accountKeys[0]]; // Prende i dati del conto
+            
+            // Aggiorna gli elementi dell'interfaccia con i campi corretti dell'EA
+            document.getElementById('balance').innerText = `$${Number(account.balance || 0).toFixed(2)}`;
+            document.getElementById('equity').innerText = `$${Number(account.equity || 0).toFixed(2)}`;
+            document.getElementById('trades').innerText = account.openOrders !== undefined ? account.openOrders : 0;
+
+            document.getElementById('connection-status').innerText = `Connesso (Conto: ${account.accountNumber || accountKeys[0]})`;
+            document.getElementById('connection-status').style.color = "#4caf50";
         } catch (e) {
             console.error("Errore di autenticazione o connessione", e);
-            document.getElementById('connection-status').innerText = "Errore: API Key non valida o mancante";
+            document.getElementById('connection-status').innerText = "Errore: API Key non valida o offline";
             document.getElementById('connection-status').style.color = "#d32f2f";
         }
     }
@@ -118,9 +130,13 @@
         if (confirm("ATTENZIONE: Vuoi davvero chiudere tutte le operazioni aperte su MT4?")) {
             try {
                 const response = await fetch(`/api/app/kill?key=${apiKey}`, { method: 'POST' });
-                alert("Comando Kill Switch inviato con successo!");
+                if (response.ok) {
+                    alert("Comando Kill Switch inviato con successo!");
+                } else {
+                    alert("Errore durante l'invio del comando.");
+                }
             } catch (e) {
-                alert("Errore nell'invio del comando.");
+                alert("Errore nella connessione al server.");
             }
         }
     }
