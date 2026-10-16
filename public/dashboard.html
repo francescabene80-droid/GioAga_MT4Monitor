@@ -12,7 +12,7 @@
             background-color: #121212;
             color: #e0e0e0;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -22,44 +22,80 @@
             max-width: 400px;
         }
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             color: #ffffff;
         }
-        .card {
+        .account-card {
             background: #1e1e1e;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border-left: 4px solid #ff9800;
         }
-        .card label {
-            font-size: 0.85rem;
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ff9800;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .row label {
             color: #9e9e9e;
         }
-        .card .value {
-            font-size: 1.4rem;
+        .row .value {
             font-weight: bold;
             color: #ffffff;
-            margin-top: 5px;
         }
-        .btn-kill {
+        .profit-pos { color: #4caf50 !important; }
+        .profit-neg { color: #d32f2f !important; }
+
+        .btn-kill-small {
             background-color: #d32f2f;
             color: white;
             border: none;
-            width: 100%;
-            padding: 16px;
-            font-size: 1.1rem;
+            padding: 6px 12px;
+            font-size: 0.75rem;
             font-weight: bold;
-            border-radius: 12px;
+            border-radius: 6px;
             cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+            box-shadow: 0 2px 5px rgba(211, 47, 47, 0.3);
         }
-        .btn-kill:active {
+        .btn-kill-small:active {
             background-color: #b71c1c;
         }
+
+        .summary-card {
+            background: #252525;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196f3;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        .summary-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #2196f3;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+
         .status-online {
             text-align: center;
             font-size: 0.8rem;
@@ -71,29 +107,17 @@
 <body>
 
 <div class="container">
-    <h1>MT4 Monitor & Kill Switch</h1>
+    <h1>MT4 Monitor & Control</h1>
     
-    <div class="card">
-        <label>SALDO</label>
-        <div class="value" id="balance">Caricamento...</div>
+    <!-- Contenitore dinamico della lista conti e del riepilogo finale -->
+    <div id="dashboard-container">
+        <div class="account-card" style="text-align: center; color: #9e9e9e;">Caricamento dati in corso...</div>
     </div>
 
-    <div class="card">
-        <label>EQUITY</label>
-        <div class="value" id="equity">Caricamento...</div>
-    </div>
-
-    <div class="card">
-        <label>POSIZIONI APERTE</label>
-        <div class="value" id="trades">Caricamento...</div>
-    </div>
-
-    <button class="btn-kill" onclick="triggerKillSwitch()">🚨 KILL SWITCH (CHIUDI TUTTO)</button>
     <div class="status-online" id="connection-status">Connesso al server Render</div>
 </div>
 
 <script>
-    // Prende la chiave direttamente dall'URL (es: ?key=LA_TUA_CHIAVE)
     const urlParams = new URLSearchParams(window.location.search);
     const apiKey = urlParams.get('key') || "paperino"; 
 
@@ -103,35 +127,96 @@
             if (!response.ok) throw new Error("Non autorizzato");
             
             const rawData = await response.json();
-            
-            // Estrae il primo account presente nell'oggetto (es. "17031093")
-            const accountKeys = Object.keys(rawData);
-            if (accountKeys.length === 0) {
-                throw new Error("Nessun conto trovato nei dati");
+            const container = document.getElementById('dashboard-container');
+            container.innerHTML = ''; 
+
+            let accountCount = 0;
+            let sumBalance = 0;
+            let sumProfit = 0;
+
+            let listsHTML = '';
+
+            // Cicla su tutti i conti ricevuti
+            for (const accId in rawData) {
+                if (rawData.hasOwnProperty(accId)) {
+                    const acc = rawData[accId];
+                    accountCount++;
+
+                    const b = Number(acc.balance || 0);
+                    const e = Number(acc.equity || 0);
+                    const p = Number(acc.profit || acc.openFloating || 0);
+                    const fullAccNum = acc.accountNumber || accId;
+                    const maskedAcc = "..." + fullAccNum.slice(-4); // Prende solo le ultime 4 cifre
+
+                    sumBalance += b;
+                    sumProfit += p;
+
+                    const profitClass = p >= 0 ? 'profit-pos' : 'profit-neg';
+
+                    // Riga / Scheda per il singolo conto con pulsante Kill dedicato
+                    listsHTML += `
+                        <div class="account-card">
+                            <div class="account-header">
+                                <span>Conto: ${maskedAcc}</span>
+                                <button class="btn-kill-small" onclick="triggerKillSwitch('${fullAccNum}')">🚨 KILL</button>
+                            </div>
+                            <div class="row">
+                                <label>Saldo:</label>
+                                <span class="value">$${b.toFixed(2)}</span>
+                            </div>
+                            <div class="row">
+                                <label>Equity:</label>
+                                <span class="value">$${e.toFixed(2)}</span>
+                            </div>
+                            <div class="row">
+                                <label>Floating:</label>
+                                <span class="value ${profitClass}">$${p.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
-            const account = rawData[accountKeys[0]]; // Prende i dati del conto
-            
-            // Aggiorna gli elementi dell'interfaccia con i campi corretti dell'EA
-            document.getElementById('balance').innerText = `$${Number(account.balance || 0).toFixed(2)}`;
-            document.getElementById('equity').innerText = `$${Number(account.equity || 0).toFixed(2)}`;
-            document.getElementById('trades').innerText = account.openOrders !== undefined ? account.openOrders : 0;
+            if (accountCount === 0) {
+                container.innerHTML = '<div class="account-card" style="text-align: center; color: #ff9800;">Nessun conto attivo trovato</div>';
+                return;
+            }
 
-            document.getElementById('connection-status').innerText = `Connesso (Conto: ${account.accountNumber || accountKeys[0]})`;
+            // Blocco di riepilogo totale in fondo alla lista
+            const totalProfitClass = sumProfit >= 0 ? 'profit-pos' : 'profit-neg';
+            const summaryHTML = `
+                <div class="summary-card">
+                    <div class="summary-title">📊 RIEPILOGO GLOBALE (${accountCount} ${accountCount === 1 ? 'Conto' : 'Conti'})</div>
+                    <div class="row">
+                        <label>Totale Saldi:</label>
+                        <span class="value">$${sumBalance.toFixed(2)}</span>
+                    </div>
+                    <div class="row">
+                        <label>Profitto Totale:</label>
+                        <span class="value ${totalProfitClass}">$${sumProfit.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+
+            // Mostra prima la lista dei conti, poi il riepilogo in fondo
+            container.innerHTML = listsHTML + summaryHTML;
+
+            document.getElementById('connection-status').innerText = `Connesso - ${accountCount} ${accountCount === 1 ? 'conto attivo' : 'conti attivi'}`;
             document.getElementById('connection-status').style.color = "#4caf50";
         } catch (e) {
-            console.error("Errore di autenticazione o connessione", e);
+            console.error("Errore di connessione", e);
             document.getElementById('connection-status').innerText = "Errore: API Key non valida o offline";
             document.getElementById('connection-status').style.color = "#d32f2f";
         }
     }
 
-    async function triggerKillSwitch() {
-        if (confirm("ATTENZIONE: Vuoi davvero chiudere tutte le operazioni aperte su MT4?")) {
+    async function triggerKillSwitch(accountNumber) {
+        if (confirm(`ATTENZIONE: Vuoi chiudere tutte le operazioni aperte sul conto ${accountNumber}?`)) {
             try {
-                const response = await fetch(`/api/app/kill?key=${apiKey}`, { method: 'POST' });
+                // Passa anche l'account se il backend lo supporta, oppure richiama l'endpoint standard
+                const response = await fetch(`/api/app/kill?key=${apiKey}&account=${accountNumber}`, { method: 'POST' });
                 if (response.ok) {
-                    alert("Comando Kill Switch inviato con successo!");
+                    alert(`Comando Kill Switch inviato per il conto ${accountNumber}!`);
                 } else {
                     alert("Errore durante l'invio del comando.");
                 }
