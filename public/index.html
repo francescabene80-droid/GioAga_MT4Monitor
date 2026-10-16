@@ -97,14 +97,20 @@
 
     async function fetchData() {
         try {
+            // Passa la chiave come parametro nella chiamata fetch
             const response = await fetch(`/api/app/status?key=${apiKey}`);
+            if (!response.ok) throw new Error("Non autorizzato");
+            
             const data = await response.json();
             
+            // Adatta questi campi in base a come è fatto il tuo oggetto JSON `accounts`
             document.getElementById('balance').innerText = `$${data.balance || '0.00'}`;
             document.getElementById('equity').innerText = `$${data.equity || '0.00'}`;
             document.getElementById('trades').innerText = data.openTrades || '0';
         } catch (e) {
-            console.error("Errore di connessione", e);
+            console.error("Errore di autenticazione o connessione", e);
+            document.getElementById('connection-status').innerText = "Errore: API Key non valida o mancante";
+            document.getElementById('connection-status').style.color = "#d32f2f";
         }
     }
 
