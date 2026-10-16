@@ -127,12 +127,14 @@
             if (!response.ok) throw new Error("Non autorizzato");
             
             const rawData = await response.json();
+            console.log("JSON Grezzo ricevuto dal server:", rawData); // Utile per debug (F12)
+
             const container = document.getElementById('dashboard-container');
             container.innerHTML = ''; 
 
             let accountCount = 0;
             let sumBalance = 0;
-            let sumProfit = 0;
+            let sumFloating = 0;
 
             let listsHTML = '';
 
@@ -142,18 +144,21 @@
                     const acc = rawData[accId];
                     accountCount++;
 
-                    const b = Number(acc.balance || 0);
-                    const e = Number(acc.equity || 0);
-                    const p = Number(acc.profit || acc.openFloating || 0);
+                    // Estrazione puntuale dei campi reali inviati dall'EA
+                    const b = Number(acc.balance) || 0;
+                    const e = Number(acc.equity) || 0;
+                    // Usa prioritariamente 'profit', altrimenti 'openFloating'
+                    const p = (acc.profit !== undefined) ? Number(acc.profit) : (Number(acc.openFloating) || 0);
+                    
                     const fullAccNum = acc.accountNumber || accId;
-                    const maskedAcc = "..." + fullAccNum.slice(-4); // Prende solo le ultime 4 cifre
+                    const maskedAcc = "..." + String(fullAccNum).slice(-4);
 
                     sumBalance += b;
-                    sumProfit += p;
+                    sumFloating += p;
 
                     const profitClass = p >= 0 ? 'profit-pos' : 'profit-neg';
 
-                    // Riga / Scheda per il singolo conto con pulsante Kill dedicato
+                    // Scheda singolo conto
                     listsHTML += `
                         <div class="account-card">
                             <div class="account-header">
@@ -162,15 +167,15 @@
                             </div>
                             <div class="row">
                                 <label>Saldo:</label>
-                                <span class="value">$${b.toFixed(2)}</span>
+                                <span class="value">€${b.toFixed(2)}</span>
                             </div>
                             <div class="row">
                                 <label>Equity:</label>
-                                <span class="value">$${e.toFixed(2)}</span>
+                                <span class="value">€${e.toFixed(2)}</span>
                             </div>
                             <div class="row">
                                 <label>Floating:</label>
-                                <span class="value ${profitClass}">$${p.toFixed(2)}</span>
+                                <span class="value ${profitClass}">€${p.toFixed(2)}</span>
                             </div>
                         </div>
                     `;
@@ -182,23 +187,22 @@
                 return;
             }
 
-            // Blocco di riepilogo totale in fondo alla lista
-            const totalProfitClass = sumProfit >= 0 ? 'profit-pos' : 'profit-neg';
+            // Riepilogo globale
+            const totalProfitClass = sumFloating >= 0 ? 'profit-pos' : 'profit-neg';
             const summaryHTML = `
                 <div class="summary-card">
                     <div class="summary-title">📊 RIEPILOGO GLOBALE (${accountCount} ${accountCount === 1 ? 'Conto' : 'Conti'})</div>
                     <div class="row">
                         <label>Totale Saldi:</label>
-                        <span class="value">$${sumBalance.toFixed(2)}</span>
+                        <span class="value">€${sumBalance.toFixed(2)}</span>
                     </div>
                     <div class="row">
-                        <label>Profitto Totale:</label>
-                        <span class="value ${totalProfitClass}">$${sumProfit.toFixed(2)}</span>
+                        <label>Floating Totale:</label>
+                        <span class="value ${totalProfitClass}">€${sumFloating.toFixed(2)}</span>
                     </div>
                 </div>
             `;
 
-            // Mostra prima la lista dei conti, poi il riepilogo in fondo
             container.innerHTML = listsHTML + summaryHTML;
 
             document.getElementById('connection-status').innerText = `Connesso - ${accountCount} ${accountCount === 1 ? 'conto attivo' : 'conti attivi'}`;
@@ -213,7 +217,6 @@
     async function triggerKillSwitch(accountNumber) {
         if (confirm(`ATTENZIONE: Vuoi chiudere tutte le operazioni aperte sul conto ${accountNumber}?`)) {
             try {
-                // Passa anche l'account se il backend lo supporta, oppure richiama l'endpoint standard
                 const response = await fetch(`/api/app/kill?key=${apiKey}&account=${accountNumber}`, { method: 'POST' });
                 if (response.ok) {
                     alert(`Comando Kill Switch inviato per il conto ${accountNumber}!`);
@@ -226,10 +229,7 @@
         }
     }
 
-    // Aggiorna i dati ogni 5 secondi
     setInterval(fetchData, 5000);
     fetchData();
 </script>
-
-</body>
 </html>
