@@ -6,6 +6,11 @@ const { Telegraf, Markup } = require('telegraf');
 app.use(express.json());
 app.use(express.static('public'));
 
+// Reindirizza la home page direttamente alla dashboard grafica
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
+});
+
 // CONFIGURAZIONE VARIABILI D'AMBIENTE
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;               // La tua chiave d'accesso MT4
