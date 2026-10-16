@@ -9,9 +9,9 @@ app.use(express.json());
 // 1. METODO PRINCIPALE: Dichiara i file statici della cartella public
 app.use(express.static('public'));
 
-// Reindirizza la home page direttamente alla dashboard grafica
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+// Rotta dedicata per aprire la dashboard grafica
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // CONFIGURAZIONE VARIABILI D'AMBIENTE
