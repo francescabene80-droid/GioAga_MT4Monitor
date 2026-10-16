@@ -11,7 +11,7 @@ app.use(express.static('public'));
 
 // Rotta dedicata per aprire la dashboard grafica
 app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // CONFIGURAZIONE VARIABILI D'AMBIENTE
