@@ -143,7 +143,7 @@
             let accountCount = 0;
             let sumBalance = 0;
             let sumEquity = 0;
-            let sumProfit = 0;
+            let sumClosedToday = 0;
             let sumFloating = 0;
             let listsHTML = '';
 
@@ -154,7 +154,8 @@
 
                     const b = Number(acc.balance) || 0;
                     const e = Number(acc.equity) || 0;
-                    const p = Number(acc.profit) || 0;
+                    // Legge il profitto chiuso oggi (in cassa)
+                    const ct = (acc.closedProfitToday !== undefined) ? Number(acc.closedProfitToday) : (Number(acc.profit) || 0);
                     const fl = Number(acc.openFloating) || 0;
                     const dd = Number(acc.drawdown) || 0;
                     
@@ -163,10 +164,10 @@
 
                     sumBalance += b;
                     sumEquity += e;
-                    sumProfit += p;
+                    sumClosedToday += ct;
                     sumFloating += fl;
 
-                    const profitClass = p >= 0 ? 'profit-pos' : 'profit-neg';
+                    const closedProfitClass = ct >= 0 ? 'profit-pos' : 'profit-neg';
                     const floatingClass = fl >= 0 ? 'profit-pos' : 'profit-neg';
                     const ddClass = dd > 10 ? 'profit-neg' : (dd > 5 ? 'dd-warn' : 'value');
 
@@ -189,8 +190,8 @@
                                 <span class="value">€${e.toFixed(2)}</span>
                             </div>
                             <div class="row">
-                                <label>Profitto Generato:</label>
-                                <span class="value ${profitClass}">€${p.toFixed(2)}</span>
+                                <label>Profitto Oggi (Cassa):</label>
+                                <span class="value ${closedProfitClass}">€${ct.toFixed(2)}</span>
                             </div>
                             <div class="row">
                                 <label>Drawdown In Corso:</label>
@@ -210,7 +211,7 @@
                 return;
             }
 
-            const totalProfitClass = sumProfit >= 0 ? 'profit-pos' : 'profit-neg';
+            const totalClosedClass = sumClosedToday >= 0 ? 'profit-pos' : 'profit-neg';
             const totalFloatingClass = sumFloating >= 0 ? 'profit-pos' : 'profit-neg';
 
             const summaryHTML = `
@@ -225,8 +226,8 @@
                         <span class="value">€${sumEquity.toFixed(2)}</span>
                     </div>
                     <div class="row">
-                        <label>Totale Profitto Generato:</label>
-                        <span class="value ${totalProfitClass}">€${sumProfit.toFixed(2)}</span>
+                        <label>Totale Profitto Oggi (Cassa):</label>
+                        <span class="value ${totalClosedClass}">€${sumClosedToday.toFixed(2)}</span>
                     </div>
                     <div class="row">
                         <label>Totale Fluttuante:</label>
@@ -283,6 +284,5 @@
     setInterval(fetchData, 5000);
     fetchData();
 </script>
-
 </body>
 </html>
